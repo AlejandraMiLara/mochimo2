@@ -1,0 +1,203 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  name              String
+  lastName          String
+  profilePictureUrl String?
+  billingDetails    Json? //datos fiscales del freelancer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients       Client[]
+  projects      Project[]
+  notifications Notification[]
+}
+
+model Client {
+  id          String  @id @default(uuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     Json? // { street, city, state, zip, country }
+  taxId       String? // NIF/CIF del cliente
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projects Project[]
+  invoices Invoice[]
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(proposal)
+  startDate   DateTime?
+  deadline    DateTime?
+  totalBudget Decimal?
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks     Task[]
+  contracts Contract[]
+  invoices  Invoice[]
+}
+
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TaskStatus @default(todo)
+  priority    TaskPriority @default(medium)
+  dueDate     DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+
+model Contract {
+  id         String         @id @default(uuid())
+  title      String
+  terms      String
+  status     ContractStatus @default(draft)
+  fileUrl    String?
+  signedDate DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique // ej: "FRA-2025-001"
+  issueDate     DateTime
+  dueDate       DateTime
+  status        InvoiceStatus @default(draft)
+  subtotal      Decimal
+  taxAmount     Decimal       @default(0)
+  total         Decimal
+  notes         String?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict) // No borrar proyecto si tiene facturas
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Restrict) // No borrar cliente si tiene facturas
+
+  items     InvoiceItem[]
+  payments  Payment[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  total       Decimal
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade) // Si se borra la factura, se borran sus líneas
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  amount      Decimal
+  paymentDate DateTime
+  method      PaymentMethod
+  notes       String?
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict) // No borrar factura si tiene pagos
+}
+
+
+model Notification {
+  id              String           @id @default(uuid())
+  message         String
+  type            NotificationType
+  isRead          Boolean          @default(false)
+  relatedEntityId String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+
+enum ProjectStatus {
+  proposal
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum ContractStatus {
+  draft
+  sent
+  signed
+  expired
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+enum PaymentMethod {
+  bank_transfer
+  paypal
+  stripe
+  cash
+  other
+}
+
+enum NotificationType {
+  task_due
+  invoice_overdue
+  payment_received
+  contract_signed
+  general
+}
