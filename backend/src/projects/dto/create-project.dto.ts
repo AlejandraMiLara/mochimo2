@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsDateString, IsDecimal, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsDateString, IsNumber, IsUUID } from 'class-validator';
 import { ProjectStatus } from '@prisma/client';
 
 export class CreateProjectDto {
@@ -22,13 +22,12 @@ export class CreateProjectDto {
   deadline?: string;
 
   @IsOptional()
-  @IsDecimal()
+  @IsNumber()
   totalBudget?: number;
 
   @IsOptional()
   @IsUUID()
   clientId?: string;
 
-  @IsUUID()
-  userId: string;
+  // userId removido - se obtiene del usuario autenticado
 }
