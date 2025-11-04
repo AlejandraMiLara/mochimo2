@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { authService, type RegisterData } from '../services/api';
 
 interface RegisterProps {
@@ -25,8 +26,18 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
       await authService.register(formData);
       onRegisterSuccess();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Error al registrarse');
+      let message = 'Error al registrarse';
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          message = 'No se pudo conectar con el servidor';
+        } else {
+          const data: any = err.response.data;
+          if (Array.isArray(data?.message)) message = data.message.join(', ');
+          else if (typeof data?.message === 'string') message = data.message;
+          else if (typeof data === 'string') message = data;
+        }
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -40,85 +51,94 @@ export const Register: React.FC<RegisterProps> = ({ onRegisterSuccess, onSwitchT
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px' }}>
-      <h2>Registrarse</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Nombre:</label>
+    <div className="w-full rounded-2xl border border-fuchsia-400/30 bg-slate-900/60 backdrop-blur p-6 shadow-2xl hover:ring-1 hover:ring-fuchsia-400/30 transition">
+      <h2 className='text-xl font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-500 bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(236,72,153,0.8),_0_0_12px_rgba(168,85,247,0.7)] font-["Lobster Two",cursive]'>Crear cuenta</h2>
+      <p className="text-sm text-slate-300 mb-4">Completa tus datos para registrarte.</p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1" htmlFor="name">Nombre</label>
           <input
+            className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500"
             type="text"
+            id="name"
             name="name"
             value={formData.name}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            autoComplete="given-name"
+            placeholder="Tu nombre"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Apellido:</label>
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1" htmlFor="lastName">Apellido</label>
           <input
+            className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500"
             type="text"
+            id="lastName"
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            autoComplete="family-name"
+            placeholder="Tu apellido"
           />
         </div>
         
-        <div style={{ marginBottom: '15px' }}>
-          <label>Email:</label>
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1" htmlFor="reg-email">Email</label>
           <input
+            className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500"
             type="email"
+            id="reg-email"
             name="email"
             value={formData.email}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            autoComplete="email"
+            placeholder="tucorreo@ejemplo.com"
           />
         </div>
         
-        <div style={{ marginBottom: '15px' }}>
-          <label>Contraseña:</label>
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1" htmlFor="reg-password">Contraseña</label>
           <input
+            className="w-full rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500"
             type="password"
+            id="reg-password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
             minLength={8}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            autoComplete="new-password"
+            placeholder="Mínimo 8 caracteres"
           />
         </div>
 
         {error && (
-          <div style={{ color: 'red', marginBottom: '15px' }}>
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 px-3 py-2 text-sm" role="alert">
             {error}
           </div>
         )}
 
         <button 
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-500 hover:from-fuchsia-500 hover:to-purple-500 px-4 py-2 font-semibold text-white disabled:opacity-60 drop-shadow-[0_0_6px_rgba(236,72,153,0.8),_0_0_12px_rgba(168,85,247,0.7)]"
           type="submit" 
           disabled={loading}
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            backgroundColor: '#28a745', 
-            color: 'white', 
-            border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
+          aria-busy={loading}
         >
+          {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-r-transparent" />}
           {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
 
-      <p style={{ textAlign: 'center', marginTop: '20px' }}>
+      <p className="text-center text-slate-300 text-sm mt-4">
         ¿Ya tienes cuenta?{' '}
         <button 
+          type="button"
           onClick={onSwitchToLogin}
-          style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer' }}
+          className="text-fuchsia-400 hover:underline"
         >
           Inicia Sesión
         </button>
